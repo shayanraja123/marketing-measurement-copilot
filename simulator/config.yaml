@@ -1,0 +1,137 @@
+# Simulated brand: "Saguaro Supply Co.", a fictional direct-to-consumer outdoor-gear brand.
+# Every number here is a design choice for the simulation, not real-world data.
+# The generator writes the TRUE answer (ROI per channel, experiment lift) to data/ground_truth/,
+# which no model is allowed to read. Tests and the README compare model output against it.
+
+seed: 42
+start_date: "2024-10-01"
+n_days: 730                     # two full years, covers two holiday seasons
+
+regions:                        # share of the brand's demand by region (sums to 1)
+  northeast: 0.12
+  mid_atlantic: 0.10
+  southeast: 0.11
+  florida: 0.08
+  midwest: 0.13
+  texas: 0.11
+  mountain: 0.07
+  southwest: 0.09
+  california: 0.13
+  pacific_nw: 0.06
+
+baseline:                       # demand that happens with zero advertising
+  orders_per_day: 300           # national, at the start of the period
+  annual_growth: 0.12           # organic growth per year
+  weekly_pattern: [1.00, 0.97, 0.96, 0.98, 1.03, 1.10, 1.08]   # Mon..Sun multipliers
+  yearly_amplitude: 0.18        # seasonal swing, peaks around mid-December
+  holidays:                     # multiplier on baseline orders for [start, end] inclusive, every year
+    - {name: black_friday_cyber_monday, month: 11, day_from: 24, day_to: 30, multiplier: 1.9}
+    - {name: summer_sale, month: 7, day_from: 8, day_to: 14, multiplier: 1.3}
+
+orders:
+  quantity_probs: {1: 0.70, 2: 0.22, 3: 0.08}
+  returning_customer_share: 0.35    # share of orders from existing customers
+
+spend:
+  q4_multiplier: 1.30           # marketers spend more in Oct-Dec; this confounds spend with seasonality
+  noise_sd: 0.15                # day-to-day lognormal noise on spend
+  regime_days: [45, 90]         # budgets change every 45-90 days ...
+  regime_range: [0.55, 1.50]    # ... to a random multiple of the average
+  region_noise_sd: 0.10
+
+# Per-channel truth.
+#   avg_daily_spend      national average, in USD
+#   target_roi           true incremental revenue per $1 spend (the generator calibrates to this)
+#   adstock_decay        share of yesterday's ad effect that carries into today
+#   half_saturation      spend level (as a multiple of average adstocked spend) giving half of max effect
+#   hill_shape           steepness of the saturation curve
+#   view_through         how much the platform inflates its own credit for true conversions
+#   baseline_capture     share of organic (baseline) orders the platform also claims
+#   launch_day / pauses  day indexes when the channel is off
+channels:
+  paid_search:
+    avg_daily_spend: 2000
+    target_roi: 2.0
+    adstock_decay: 0.20
+    half_saturation: 1.2
+    hill_shape: 1.0
+    view_through: 0.10
+    baseline_capture: 0.06       # brand search clicks from people who would have bought anyway
+    campaigns:
+      - {id: SRCH-001, name: "Search - Brand", share: 0.35, targeting: brand_keywords}
+      - {id: SRCH-002, name: "Search - Nonbrand", share: 0.65, targeting: generic_keywords}
+  paid_social:
+    avg_daily_spend: 2200
+    target_roi: 2.4
+    adstock_decay: 0.55
+    half_saturation: 1.0
+    hill_shape: 1.2
+    view_through: 0.60
+    baseline_capture: 0.02
+    campaigns:
+      - {id: META-001, name: "Meta - Prospecting", share: 0.70, targeting: lookalike_1pct}
+      - {id: META-002, name: "Meta - Retargeting", share: 0.30, targeting: site_visitors_30d}
+  tiktok:
+    avg_daily_spend: 900
+    target_roi: 0.8              # loses money, though the platform says otherwise
+    adstock_decay: 0.45
+    half_saturation: 0.8
+    hill_shape: 1.0
+    view_through: 0.90
+    baseline_capture: 0.01
+    launch_day: 120
+    campaigns:
+      - {id: TT-001, name: "TikTok - Spark Ads", share: 1.0, targeting: interest_outdoor}
+  display:
+    avg_daily_spend: 600
+    target_roi: 0.5
+    adstock_decay: 0.35
+    half_saturation: 0.7
+    hill_shape: 1.0
+    view_through: 2.00
+    baseline_capture: 0.02
+    pauses: [[300, 320]]
+    campaigns:
+      - {id: DSP-001, name: "Display - Retargeting", share: 1.0, targeting: site_visitors_7d}
+  email:
+    avg_daily_spend: 150
+    target_roi: 7.0
+    adstock_decay: 0.10
+    half_saturation: 1.5
+    hill_shape: 1.0
+    view_through: 0.30
+    baseline_capture: 0.03
+    campaigns:
+      - {id: EML-001, name: "Email - Newsletter", share: 0.40, targeting: all_subscribers}
+      - {id: EML-002, name: "Email - Flows", share: 0.60, targeting: lifecycle_triggers}
+
+# Campaign attribute changes (feed the SCD Type 2 dimension). Budget changes are added automatically.
+campaign_changes:
+  - {day: 210, id: META-001, name: "Meta - Prospecting Broad", targeting: broad}
+  - {day: 400, id: SRCH-002, targeting: generic_plus_competitor}
+
+products:
+  n_products: 20
+  categories: [apparel, footwear, packs, camp]
+  price_range: [18, 140]
+  price_increase_days: [180, 455]   # some products get a price increase on these days
+  price_increase_share: 0.4
+  price_increase_pct: 0.08
+
+# A geo holdout the brand ran: paid social switched off in some regions for four weeks.
+geo_experiments:
+  - id: GEO-2025-01
+    channel: paid_social
+    treatment_regions: [midwest, texas, pacific_nw]
+    start_day: 500
+    end_day: 527
+    carryover_days: 14             # true lift is measured including leftover adstock after the test
+
+messiness:                         # each defect can be switched off; all off = clean data
+  duplicate_spend_rows: true       # ~1% of ad-spend rows exported twice
+  tiktok_spend_as_text: true       # TikTok export writes spend like "$1,234.56"
+  display_utc_timestamps: true     # display export uses UTC timestamps, so dates shift
+  missing_display_days: true       # display export skipped a few days
+  search_name_inconsistency: true  # search export has stray spaces and casing in campaign names
+  null_impressions: true           # a few impression counts are missing
+  late_arriving_orders: true       # some orders show up in a later export file

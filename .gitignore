@@ -1,0 +1,19 @@
+# generated data (rebuild with: python -m simulator.generate)
+data/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# notebooks and editors
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+
+# secrets
+.env

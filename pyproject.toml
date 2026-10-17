@@ -1,0 +1,32 @@
+[project]
+name = "marketing-measurement-copilot"
+version = "0.1.0"
+description = "Estimate true ad-channel ROI, optimize budgets, and explain results through an LLM copilot"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "matplotlib>=3.8",
+    "jupyter>=1.0",
+]
+
+[tool.setuptools]
+packages = ["simulator"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
