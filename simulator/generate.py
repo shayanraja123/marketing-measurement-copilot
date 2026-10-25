@@ -94,7 +94,7 @@ def baseline_orders(cfg: dict, dates: pd.DatetimeIndex) -> np.ndarray:
     b = cfg["baseline"]
     t = np.arange(len(dates))
     growth = (1 + b["annual_growth"]) ** (t / 365.0)
-    dow, doy = dates.dayofweek.to_numpy(), dates.dayofyear.to_numpy()
+    dow, doy = dates.day_of_week.to_numpy(), dates.day_of_year.to_numpy()
     month, day = dates.month.to_numpy(), dates.day.to_numpy()
     weekly = np.array(b["weekly_pattern"])[dow]
     # cosine peaking around day-of-year 350 (mid-December)
