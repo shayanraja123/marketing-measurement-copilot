@@ -1,0 +1,9 @@
+# Connection settings. dbt looks for this file in the folder you run it from.
+# "dev" is a local DuckDB file (free, no setup). A BigQuery target is added in Week 3.
+saguaro_warehouse:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: "../data/warehouse.duckdb"   # inside data/, which git ignores
+      threads: 4

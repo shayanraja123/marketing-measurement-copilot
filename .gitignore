@@ -1,6 +1,12 @@
 # generated data (rebuild with: python -m simulator.generate)
 data/
 
+# dbt build output
+warehouse/target/
+warehouse/logs/
+warehouse/dbt_packages/
+warehouse/.user.yml
+
 # python
 __pycache__/
 *.py[cod]

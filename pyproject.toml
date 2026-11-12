@@ -16,6 +16,8 @@ dev = [
     "ruff>=0.6",
     "matplotlib>=3.8",
     "jupyter>=1.0",
+    "dbt-core>=1.9,<1.11",
+    "dbt-duckdb>=1.9,<1.11",
 ]
 
 [tool.setuptools]

@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+  - name: raw
+    description: >
+      Files exactly as the brand receives them from each ad platform and its store
+      (written by `python -m simulator.generate`). Every column is read as text on purpose:
+      types are set explicitly in staging, so a bad value fails loudly instead of being guessed.
+    meta:
+      external_location: "read_csv('../data/raw/{name}.csv', header = true, all_varchar = true)"
+    tables:
+      - name: google_ads_daily
+        description: Google Ads (paid search). Campaign names have inconsistent casing and stray spaces.
+      - name: meta_ads_daily
+        description: Meta Ads (paid social). Some rows are exported twice; a few impression counts are blank.
+      - name: tiktok_ads_daily
+        description: TikTok Ads. Spend is written as text like "$1,234.56".
+      - name: dsp_display_daily
+        description: Display DSP. Dates are UTC end-of-day timestamps, and a few days are missing.
+      - name: esp_email_daily
+        description: Email platform. "emails_sent" plays the role of impressions.
+      - name: shop_orders
+        description: Store orders from the main daily export.
+      - name: shop_orders_late
+        description: Orders that arrived in a later export, with the time they were exported.
+      - name: shop_customers
+        description: One row per customer with their first order time.
+      - name: shop_products
+        description: Product catalog with the current price.
+      - name: shop_price_history
+        description: Every price a product has had and the date it took effect.
+      - name: campaign_settings_log
+        description: Change history of campaign names, targeting and daily budgets.
+      - name: regions
+        description: The 10 sales regions.
+      - name: geo_experiments
+        description: Log of geo holdout tests the brand ran.
