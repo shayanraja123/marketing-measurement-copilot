@@ -1,6 +1,6 @@
 # Simulated brand: "Saguaro Supply Co.", a fictional direct-to-consumer outdoor-gear brand.
 # Every number here is a design choice for the simulation, not real-world data.
-# The generator writes the TRUE answer (ROI per channel, experiment lift) to data/ground_truth/,
+# The generator writes the TRUE answer (incremental ROAS per channel, experiment lift) to data/ground_truth/,
 # which no model is allowed to read. Tests and the README compare model output against it.
 
 seed: 42
@@ -41,7 +41,7 @@ spend:
 
 # Per-channel truth.
 #   avg_daily_spend      national average, in USD
-#   target_roi           true incremental revenue per $1 spend (the generator calibrates to this)
+#   target_iroas         true incremental revenue per $1 spend (the generator calibrates to this)
 #   adstock_decay        share of yesterday's ad effect that carries into today
 #   half_saturation      spend level (as a multiple of average adstocked spend) giving half of max effect
 #   hill_shape           steepness of the saturation curve
@@ -51,7 +51,7 @@ spend:
 channels:
   paid_search:
     avg_daily_spend: 2000
-    target_roi: 2.0
+    target_iroas: 2.0
     adstock_decay: 0.20
     half_saturation: 1.2
     hill_shape: 1.0
@@ -62,7 +62,7 @@ channels:
       - {id: SRCH-002, name: "Search - Nonbrand", share: 0.65, targeting: generic_keywords}
   paid_social:
     avg_daily_spend: 2200
-    target_roi: 2.4
+    target_iroas: 2.4
     adstock_decay: 0.55
     half_saturation: 1.0
     hill_shape: 1.2
@@ -73,7 +73,7 @@ channels:
       - {id: META-002, name: "Meta - Retargeting", share: 0.30, targeting: site_visitors_30d}
   tiktok:
     avg_daily_spend: 900
-    target_roi: 0.8              # loses money, though the platform says otherwise
+    target_iroas: 0.8              # loses money, though the platform says otherwise
     adstock_decay: 0.45
     half_saturation: 0.8
     hill_shape: 1.0
@@ -84,7 +84,7 @@ channels:
       - {id: TT-001, name: "TikTok - Spark Ads", share: 1.0, targeting: interest_outdoor}
   display:
     avg_daily_spend: 600
-    target_roi: 0.5
+    target_iroas: 0.5
     adstock_decay: 0.35
     half_saturation: 0.7
     hill_shape: 1.0
@@ -95,7 +95,7 @@ channels:
       - {id: DSP-001, name: "Display - Retargeting", share: 1.0, targeting: site_visitors_7d}
   email:
     avg_daily_spend: 150
-    target_roi: 7.0
+    target_iroas: 7.0
     adstock_decay: 0.10
     half_saturation: 1.5
     hill_shape: 1.0

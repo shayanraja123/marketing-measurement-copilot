@@ -8,7 +8,7 @@ How sales are produced (per region r, day t):
 
 * adstock: geometric carryover, a[t] = spend[t] + decay * a[t-1]
 * hill:    diminishing returns, x**s / (x**s + 1), equals 0.5 when adstocked spend hits K
-* beta_c is calibrated so the channel's true ROI matches `target_roi` in the config
+* beta_c is calibrated so the channel's true incremental ROAS (iROAS) matches `target_iroas` in the config
 
 Actual orders are Poisson draws around the expectation, so the data is noisy the way real data is,
 while the expected contribution of every channel (the "truth") is known exactly.
@@ -192,14 +192,14 @@ def simulate(cfg: dict) -> SimulationResult:
         cols = [regions.index(r) for r in exp["treatment_regions"]]
         actual[exp["channel"]][exp["start_day"] : exp["end_day"] + 1, cols] = 0.0
 
-    # Calibrate each channel so its true ROI on planned spend equals target_roi
+    # Calibrate each channel so its true iROAS on planned spend equals target_iroas
     params = {}
     for name, ch in channels.items():
         national_adstock = geometric_adstock(planned[name].sum(axis=1)[:, None], ch["adstock_decay"])[:, 0]
         active = national_adstock[national_adstock > 0]
         k_national = ch["half_saturation"] * active.mean()
         resp = channel_response(planned[name], weights, ch, k_national)
-        beta = ch["target_roi"] * planned[name].sum() / (weights[None, :] * resp).sum()
+        beta = ch["target_iroas"] * planned[name].sum() / (weights[None, :] * resp).sum()
         params[name] = {"k_national": float(k_national), "beta": float(beta)}
 
     def incremental_revenue(name: str, spend_tr: np.ndarray) -> np.ndarray:
@@ -377,10 +377,10 @@ def simulate(cfg: dict) -> SimulationResult:
         truth["channels"][name] = {
             "total_spend": round(float(spend_total), 2),
             "true_incremental_revenue": round(float(contribution), 2),
-            "true_roi": round(float(contribution / spend_total), 4),
-            "true_marginal_roi": round(float((bumped - contribution) / (0.01 * spend_total)), 4),
+            "true_iroas": round(float(contribution / spend_total), 4),
+            "true_marginal_iroas": round(float((bumped - contribution) / (0.01 * spend_total)), 4),
             "expected_platform_roas": round(float(reported_value.sum() / spend_total), 4),
-            "target_roi": ch["target_roi"],
+            "target_iroas": ch["target_iroas"],
             "adstock_decay": ch["adstock_decay"],
             "hill_shape": ch["hill_shape"],
             "half_saturation_national_usd": round(params[name]["k_national"], 2),
@@ -466,9 +466,9 @@ def main() -> None:
 
     print(f"Wrote {len(written)} raw files to {Path(args.out) / 'raw'}")
     print(f"Orders: {len(result.tables['orders']):,}  |  ad-spend rows: {len(result.tables['ad_spend']):,}")
-    print("\nTrue ROI vs what the platforms report (ROAS):")
+    print("\nTrue incremental ROAS vs what the platforms report:")
     for name, t in result.truth["channels"].items():
-        print(f"  {name:<12} true ROI {t['true_roi']:>5.2f}   platform ROAS {t['expected_platform_roas']:>5.2f}")
+        print(f"  {name:<12} true iROAS {t['true_iroas']:>5.2f}   platform ROAS {t['expected_platform_roas']:>5.2f}")
 
 
 if __name__ == "__main__":

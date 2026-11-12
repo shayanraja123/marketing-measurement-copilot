@@ -53,15 +53,15 @@ def test_same_seed_gives_identical_data():
 # ----------------------------------------------------------------- ground truth
 
 
-def test_true_roi_matches_config_target():
+def test_true_iroas_matches_config_target():
     for name, t in full_run().truth["channels"].items():
-        assert abs(t["true_roi"] / t["target_roi"] - 1) < 0.02, name
+        assert abs(t["true_iroas"] / t["target_iroas"] - 1) < 0.02, name
 
 
-def test_marginal_roi_below_average_roi():
+def test_marginal_iroas_below_average_iroas():
     # diminishing returns: the next dollar earns less than the average dollar
     for name, t in full_run().truth["channels"].items():
-        assert t["true_marginal_roi"] < t["true_roi"], name
+        assert t["true_marginal_iroas"] < t["true_iroas"], name
 
 
 def test_contributions_add_up_to_expected_revenue():
@@ -77,7 +77,7 @@ def test_simulated_revenue_close_to_expected():
 
 def test_platforms_overclaim():
     for name, t in full_run().truth["channels"].items():
-        assert t["expected_platform_roas"] > t["true_roi"], name
+        assert t["expected_platform_roas"] > t["true_iroas"], name
 
 
 # ----------------------------------------------------------------- spend logic

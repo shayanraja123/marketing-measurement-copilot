@@ -44,7 +44,7 @@ that would have happened anyway.
 
 ### The truth the models must recover
 
-| Channel | True ROI | ROAS the platform reports | True marginal ROI |
+| Channel | True iROAS | ROAS the platform reports | True marginal iROAS |
 | --- | --- | --- | --- |
 | Paid search | 2.00 | 3.48 | 1.08 |
 | Paid social | 2.40 | 4.22 | 1.42 |
@@ -54,6 +54,8 @@ that would have happened anyway.
 
 On the platforms' own numbers every channel looks profitable. In truth, TikTok and display lose money, and the next
 dollar in paid search earns far less than the average dollar. The geo holdout's true incremental ROAS is 2.44.
+
+**Terms used here:** *incremental ROAS (iROAS)* is revenue the ads actually caused per $1 spent. *Platform ROAS* is revenue the ad platform claims per $1 spent. *Marginal iROAS* is what the next dollar earns.
 
 Ground truth is written to `data/ground_truth/` and is never read by any model.
 
@@ -71,10 +73,10 @@ Change the seed or any channel's true parameters in `simulator/config.yaml` and 
 
 | Weeks | Phase | Outcome |
 | --- | --- | --- |
-| 1 to 3 | Data foundation | Simulator, dbt models on BigQuery (star schema, SCD2, tests), Dagster schedule, dashboard |
+| 1 to 3 | Data foundation | Simulator, dbt models on BigQuery (star schema, SCD2, tests), Dagster schedule |
 | 4 to 6 | Measurement | Bayesian media mix model, geo-lift and CUPED experiments, lift-test calibration, budget optimizer |
 | 7 to 8 | Production | FastAPI service in Docker, CI/CD with GitHub Actions, deployed on Cloud Run, Streamlit demo |
-| 9 to 10 | Copilot | Tool-calling agent and MCP server over the API, with an evaluation harness |
+| 9 to 11 | Copilot | Tool-calling agent over the API, RAG over the team's reports and notes, evaluation harness in CI |
 
 ## Repository layout
 
