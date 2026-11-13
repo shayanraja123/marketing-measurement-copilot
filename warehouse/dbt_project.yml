@@ -3,6 +3,7 @@ version: "1.0.0"
 profile: saguaro_warehouse
 
 model-paths: ["models"]
+seed-paths: ["seeds"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 target-path: "target"
@@ -13,3 +14,17 @@ models:
     # Staging: one model per raw file. Rename, cast types, fix known defects. No business logic.
     staging:
       +materialized: view
+    # Intermediate: reusable building blocks that are not shown to end users.
+    intermediate:
+      +materialized: view
+    # Marts: the star schema and the tables the models and app read. Stored as tables for speed.
+    marts:
+      +materialized: table
+
+seeds:
+  saguaro_warehouse:
+    promo_calendar:
+      +column_types:
+        event_name: varchar
+        start_date: date
+        end_date: date

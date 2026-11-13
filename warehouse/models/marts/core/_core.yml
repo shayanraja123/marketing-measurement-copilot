@@ -1,0 +1,95 @@
+version: 2
+
+models:
+  - name: fct_ad_spend_daily
+    description: Ad spend and platform-reported results, one row per day, campaign and region.
+    columns:
+      - name: ad_spend_id
+        description: Day, campaign and region joined into one key.
+        tests: [unique, not_null]
+      - name: campaign_version_id
+        description: The campaign version live on that day. NULL would mean spend with no matching campaign settings.
+        tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_campaigns')
+                field: campaign_version_id
+      - name: date_day
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: region
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_regions')
+                field: region
+      - name: channel
+        tests:
+          - accepted_values:
+              arguments:
+                values: [paid_search, paid_social, tiktok, display, email]
+      - name: spend
+        tests: [not_null, non_negative]
+
+  - name: fct_orders
+    description: Every store order, including late-arriving ones. What the brand actually sold.
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: order_date
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_day
+      - name: product_id
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_products')
+                field: product_id
+      - name: is_first_order
+        description: True for a customer's first-ever order.
+        tests: [not_null]
+
+  - name: dim_campaigns
+    description: >
+      SCD Type 2 campaign dimension. One row per campaign version; valid_from and valid_to
+      give the days that version was live, and is_current marks today's settings.
+    columns:
+      - name: campaign_version_id
+        tests: [unique, not_null]
+      - name: valid_from
+        tests: [not_null]
+
+  - name: dim_date
+    description: One row per day, with calendar attributes and the brand's promo events.
+    columns:
+      - name: date_day
+        tests: [unique, not_null]
+
+  - name: dim_regions
+    columns:
+      - name: region
+        tests: [unique, not_null]
+
+  - name: dim_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+
+  - name: dim_geo_experiment_regions
+    description: One row per treatment region in each geo holdout test.
+    columns:
+      - name: experiment_region_id
+        tests: [unique, not_null]
+      - name: region
+        tests:
+          - relationships:
+              arguments:
+                to: ref('dim_regions')
+                field: region

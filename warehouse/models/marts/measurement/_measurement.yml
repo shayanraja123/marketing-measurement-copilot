@@ -1,0 +1,32 @@
+version: 2
+
+models:
+  - name: mart_mmm_daily
+    description: >
+      Input table for the media mix model: one row per day and region, with actual store revenue,
+      spend per channel and the flags the model needs. Built only from store sales and spend;
+      platform-reported conversions are deliberately left out.
+    columns:
+      - name: mmm_row_id
+        description: Day and region joined into one key.
+        tests: [unique, not_null]
+      - name: revenue
+        description: Actual store revenue (USD) for the day and region.
+        tests: [not_null, non_negative]
+      - name: spend_paid_search
+        tests: [not_null, non_negative]
+      - name: spend_paid_social
+        tests: [not_null, non_negative]
+      - name: spend_tiktok
+        tests: [not_null, non_negative]
+      - name: spend_display
+        description: Zero on days the display export is missing; check display_export_missing before using.
+        tests: [not_null, non_negative]
+      - name: spend_email
+        tests: [not_null, non_negative]
+      - name: is_promo_day
+        description: True during the brand's own sales events (from the promo calendar seed).
+      - name: display_export_missing
+        description: True on single days the display export skipped; spend is unknown, not zero.
+      - name: in_geo_holdout
+        description: True when the region was a treatment region in a geo holdout test that day.
