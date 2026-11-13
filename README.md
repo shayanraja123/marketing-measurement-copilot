@@ -5,7 +5,8 @@ overestimate what their ads do and put budget in the wrong places. This project 
 true return on each channel, recommends budget shifts, and answers questions in plain English, with every number
 coming from a statistical model rather than an LLM.
 
-> **Status: Week 1 of 10.** The data simulator is done. Pipeline, models, API and copilot are in progress.
+> **Status: Week 2 of 11.** The data simulator and the dbt warehouse are done (running on DuckDB).
+> Next: BigQuery and a daily Dagster schedule, then the measurement models.
 
 ## Why simulated data?
 
@@ -59,12 +60,44 @@ dollar in paid search earns far less than the average dollar. The geo holdout's 
 
 Ground truth is written to `data/ground_truth/` and is never read by any model.
 
+## Data warehouse (dbt)
+
+The messy exports are cleaned and modeled with dbt into a tested star schema. Its final table,
+`mart_mmm_daily`, is the single input the media mix model reads: one row per day and region with actual store
+revenue and each channel's spend. Platform-reported conversions are deliberately left out of it.
+
+![dbt lineage graph: raw files flow through staging and marts into the MMM input table](docs/images/dbt-lineage.png)
+
+| Layer | Models | What happens there |
+| --- | --- | --- |
+| Staging | 12 views, one per raw file | Rename columns, set types explicitly, fix each export's defect |
+| Intermediate | `int_ad_spend__unioned` | All five ad platforms stacked into one shape |
+| Marts | `fct_ad_spend_daily`, `fct_orders` | Facts: spend per day, campaign and region; every store order |
+| Marts | `dim_campaigns` (SCD Type 2), `dim_date`, `dim_regions`, `dim_products`, `dim_geo_experiment_regions` | Dimensions; campaigns keep every version of their name, targeting and budget |
+| Marts | `mart_mmm_daily` | Model input: 7,300 rows (730 days x 10 regions) |
+
+**Key design decisions**
+
+- **Raw columns are read as text and typed explicitly in staging,** so a bad value fails loudly instead of being guessed.
+- **Duplicates are removed on the table's grain** (day, campaign, region), not with `distinct`, because platforms revise numbers after the fact.
+- **Missing stays missing.** Blank impressions stay NULL, and display's skipped export days are flagged rather than filled with zero spend.
+- **Joins use IDs, never names.** Spend links to the campaign version live that day, so names and settings come from the official change log.
+- **The SCD Type 2 dimension is built from the platforms' change log** rather than a dbt snapshot, because the full history is already available.
+
+**Data quality:** 110 tests run on every build: keys, relationships between tables, no negative money, exactly one
+current version per campaign, and reconciliation tests proving the MMM table holds exactly the same spend and revenue
+as the fact tables. One test is set to warn rather than fail: 81 Meta rows have blank impression counts.
+
 ## Quick start
 
 ```bash
-uv sync                              # or: pip install -e ".[dev]"
+pip install -e ".[dev]"              # simulator, tests and dbt
 python -m simulator.generate         # writes data/raw/ and data/ground_truth/
 pytest -q                            # 12 tests on the simulator
+
+cd warehouse
+dbt build                            # 21 models and 110 data tests on a local DuckDB file
+dbt docs generate && dbt docs serve  # browse the models and the lineage graph
 ```
 
 Change the seed or any channel's true parameters in `simulator/config.yaml` and regenerate.
@@ -82,8 +115,10 @@ Change the seed or any channel's true parameters in `simulator/config.yaml` and 
 
 ```
 simulator/       synthetic brand, ground truth, export defects
-tests/           tests for every layer
-data/            generated, not committed: raw/, ground_truth/
+tests/           tests for the simulator
+warehouse/       dbt project: staging, marts, seeds and data tests
+docs/images/     screenshots used in this README
+data/            generated, not committed: raw/, ground_truth/, warehouse.duckdb
 ```
 
-More folders arrive with each phase: `warehouse/` (dbt), `orchestration/`, `measurement/`, `api/`, `copilot/`, `app/`.
+More folders arrive with each phase: `orchestration/`, `measurement/`, `api/`, `copilot/`, `app/`.
