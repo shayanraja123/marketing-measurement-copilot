@@ -86,7 +86,7 @@ revenue and each channel's spend. Platform-reported conversions are deliberately
 
 **Data quality:** 110 tests run on every build: keys, relationships between tables, no negative money, exactly one
 current version per campaign, and reconciliation tests proving the MMM table holds exactly the same spend and revenue
-as the fact tables. One test is set to warn rather than fail: 81 Meta rows have blank impression counts.
+as the fact tables. One test is set to warn rather than fail: 80 Meta rows have blank impression counts.
 
 ## Quick start
 
