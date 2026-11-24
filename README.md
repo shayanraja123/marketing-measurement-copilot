@@ -5,8 +5,8 @@ overestimate what their ads do and put budget in the wrong places. This project 
 true return on each channel, recommends budget shifts, and answers questions in plain English, with every number
 coming from a statistical model rather than an LLM.
 
-> **Status: Week 3 of 11.** The data foundation is done: simulator, dbt warehouse on DuckDB and BigQuery,
-> and a Dagster pipeline. Next: the measurement models (media mix model and experiments).
+> **Status: Week 4 of 11.** Data foundation done (simulator, dbt on DuckDB and BigQuery, Dagster), and a first
+> Bayesian media mix model graded against the truth. Next: calibrating it with the geo experiment.
 
 ## Why simulated data?
 
@@ -114,6 +114,41 @@ copies of each model. Both warehouses pass the same 132 checks and produce ident
 store's APIs, and Dagster would run on a server. Here the simulator writes the files, and the schedule runs
 while `dagster dev` is open on a laptop.
 
+## Measurement: does the model find the truth?
+
+Every method below reads only `mart_mmm_daily`. The ground truth is read afterwards, by a separate grading
+step (`measurement/grade.py`), and every run is logged to MLflow with its settings and scores.
+
+**Incremental ROAS per channel** (revenue per $1 of spend, national daily data, 730 days):
+
+| Channel | True iROAS | Platform-reported ROAS | Naive regression | Bayesian MMM (94% interval) |
+| --- | --- | --- | --- | --- |
+| Paid search | 2.00 | 3.48 | -1.47 | 1.19 (0.33 to 2.34) |
+| Paid social | 2.40 | 4.22 | 2.89 | 1.32 (0.72 to 2.04) |
+| TikTok | 0.80 | 1.98 | 1.13 | 1.91 (0.40 to 3.41) |
+| Display | 0.50 | 2.84 | 8.14 | 0.21 (0.01 to 0.74) |
+| Email | 7.00 | 16.75 | 21.01 | 5.72 (0.16 to 21.83) |
+
+| Score | Naive regression | Regression + seasonality controls | Bayesian MMM |
+| --- | --- | --- | --- |
+| Channels on the wrong side of break-even | 3 of 5 | 3 of 5 | **1 of 5** |
+| Mean absolute error | 393% | 163% | **60%** |
+| Truth inside the model's 94% interval | n/a | n/a | **4 of 5** |
+
+**What the naive regression gets wrong:** regressing daily revenue on same-day spend ignores carryover
+(adstock), assumes every dollar works equally (no saturation), and can't separate channels whose budgets rise
+together in Q4. It calls display, a channel that loses money, an $8 return.
+
+**What the MMM gets right:** it models adstock, saturation, trend, weekly and yearly seasonality and promo days,
+and reports uncertainty. It flags display as unprofitable with 99% confidence, which is the costliest call to get
+wrong.
+
+**Where it still falls short, and why:** it gives ads about 31% too little credit overall ($5.9M of incremental
+revenue vs. a true $8.6M), because the brand raised budgets in Q4 exactly when holiday demand peaked, so some ad
+effect is credited to seasonality. It also over-credits TikTok, the channel with the shortest history.
+Priors were **not** tuned toward the known answer, since a real analyst never has it. The fix uses information a
+real brand does have: its geo holdout experiment (next).
+
 ## Quick start
 
 ```bash
@@ -127,6 +162,10 @@ dbt docs generate && dbt docs serve  # browse the models and the lineage graph
 cd ..
 
 dagster dev                          # pipeline UI at http://localhost:3000
+
+python -m measurement.naive_regression   # the baseline, graded against the truth
+python -m measurement.bayesian_mmm       # Bayesian MMM, about 30 seconds on a laptop
+mlflow ui --backend-store-uri sqlite:///data/mlflow.db --port 5001   # compare runs at http://127.0.0.1:5001
 ```
 
 **To run on BigQuery** (free sandbox, no credit card), create a Google Cloud project, then:
@@ -157,8 +196,10 @@ tests/           tests for the simulator
 warehouse/       dbt project: staging, marts, seeds, data tests and cross-database macros
 pipeline/        loader that uploads the raw files to BigQuery
 orchestration/   Dagster pipeline: assets, daily schedule, BigQuery publish job
+measurement/     naive regression, Bayesian MMM, grading against the truth, MLflow tracking
+results/         each model's scorecard against the truth
 docs/images/     screenshots used in this README
 data/            generated, not committed: raw/, ground_truth/, warehouse.duckdb
 ```
 
-More folders arrive with each phase: `measurement/`, `api/`, `copilot/`, `app/`.
+More folders arrive with each phase: `api/`, `copilot/`, `app/`.

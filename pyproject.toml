@@ -24,6 +24,7 @@ dev = [
     "dagster-webserver>=1.9",
     "dagster-dbt>=0.25",
     "pymc-marketing>=1.5",
+    "mlflow>=2.15",
 ]
 
 [tool.setuptools]

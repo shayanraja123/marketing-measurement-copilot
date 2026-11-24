@@ -1,8 +1,9 @@
 """Record every model run in MLflow: its settings, its scores against the truth, and its scorecard.
 
 Runs are stored locally in data/mlflow.db (data/ is not committed). To browse and compare them:
-    mlflow ui --backend-store-uri sqlite:///data/mlflow.db
-then open http://localhost:5000
+    mlflow ui --backend-store-uri sqlite:///data/mlflow.db --port 5001
+then open http://127.0.0.1:5001
+(Port 5000 also works, but on macOS it can clash with AirPlay Receiver, so use 127.0.0.1, not localhost.)
 """
 
 from pathlib import Path
