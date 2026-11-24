@@ -5,8 +5,8 @@ overestimate what their ads do and put budget in the wrong places. This project 
 true return on each channel, recommends budget shifts, and answers questions in plain English, with every number
 coming from a statistical model rather than an LLM.
 
-> **Status: Week 2 of 11.** The data simulator and the dbt warehouse are done (running on DuckDB).
-> Next: BigQuery and a daily Dagster schedule, then the measurement models.
+> **Status: Week 3 of 11.** The data foundation is done: simulator, dbt warehouse on DuckDB and BigQuery,
+> and a Dagster pipeline. Next: the measurement models (media mix model and experiments).
 
 ## Why simulated data?
 
@@ -88,6 +88,32 @@ revenue and each channel's spend. Platform-reported conversions are deliberately
 current version per campaign, and reconciliation tests proving the MMM table holds exactly the same spend and revenue
 as the fact tables. One test is set to warn rather than fail: 80 Meta rows have blank impression counts.
 
+## Cloud warehouse and orchestration
+
+**BigQuery.** The same dbt models run locally on DuckDB (`dev`, free and fast) and on Google BigQuery
+(`prod`). Where the two SQL dialects differ, for example `try_cast` vs `safe_cast` or how to list every day in
+a range, the models call small cross-database macros (`warehouse/macros/cross_db.sql`) instead of keeping two
+copies of each model. Both warehouses pass the same 132 checks and produce identical results:
+7,300 rows and $40,705,705.40 of revenue in `mart_mmm_daily`.
+
+![The MMM input table in BigQuery](docs/images/bigquery-mart-preview.png)
+
+**Dagster.** One pipeline replaces running commands by hand, in order:
+
+- Each raw export file and each dbt model is a Dagster **asset**, so the full lineage is visible and every
+  table shows when it was last built.
+- Every dbt test appears as a **check** on its table. Error-level checks stop bad data from flowing downstream;
+  warning-level checks (like the 80 blank Meta impression counts) are recorded without stopping the run.
+- **`daily_refresh`** rebuilds and tests the local warehouse, on a 6 am (Phoenix time) schedule.
+- **`publish_to_bigquery`** uploads the raw files and rebuilds the warehouse in BigQuery. It runs on demand,
+  because the free BigQuery sandbox has a 10 GiB lifetime storage limit that daily reloads would slowly use up.
+
+![A publish_to_bigquery run in Dagster: load, then build, both green](docs/images/dagster-bigquery-run.png)
+
+**What's simulated:** in production, the first step would pull yesterday's files from the ad platforms' and
+store's APIs, and Dagster would run on a server. Here the simulator writes the files, and the schedule runs
+while `dagster dev` is open on a laptop.
+
 ## Quick start
 
 ```bash
@@ -98,6 +124,18 @@ pytest -q                            # 12 tests on the simulator
 cd warehouse
 dbt build                            # 21 models and 110 data tests on a local DuckDB file
 dbt docs generate && dbt docs serve  # browse the models and the lineage graph
+cd ..
+
+dagster dev                          # pipeline UI at http://localhost:3000
+```
+
+**To run on BigQuery** (free sandbox, no credit card), create a Google Cloud project, then:
+
+```bash
+gcloud auth application-default login
+export GCP_PROJECT=your-project-id
+python -m pipeline.load_raw_bigquery         # upload raw files to the `raw` dataset
+cd warehouse && dbt build --target prod      # build and test everything in BigQuery
 ```
 
 Change the seed or any channel's true parameters in `simulator/config.yaml` and regenerate.
@@ -116,9 +154,11 @@ Change the seed or any channel's true parameters in `simulator/config.yaml` and 
 ```
 simulator/       synthetic brand, ground truth, export defects
 tests/           tests for the simulator
-warehouse/       dbt project: staging, marts, seeds and data tests
+warehouse/       dbt project: staging, marts, seeds, data tests and cross-database macros
+pipeline/        loader that uploads the raw files to BigQuery
+orchestration/   Dagster pipeline: assets, daily schedule, BigQuery publish job
 docs/images/     screenshots used in this README
 data/            generated, not committed: raw/, ground_truth/, warehouse.duckdb
 ```
 
-More folders arrive with each phase: `orchestration/`, `measurement/`, `api/`, `copilot/`, `app/`.
+More folders arrive with each phase: `measurement/`, `api/`, `copilot/`, `app/`.

@@ -7,6 +7,10 @@ warehouse/logs/
 warehouse/dbt_packages/
 warehouse/.user.yml
 
+# dagster local run history
+.tmp_dagster_home*/
+.dagster/
+
 # python
 __pycache__/
 *.py[cod]
