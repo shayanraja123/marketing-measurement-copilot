@@ -3,7 +3,7 @@ name = "marketing-measurement-copilot"
 version = "0.1.0"
 description = "Estimate true ad-channel ROI, optimize budgets, and explain results through an LLM copilot"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"  # PyMC-Marketing 1.5 needs 3.12+
 dependencies = [
     "numpy>=1.26",
     "pandas>=2.2",
@@ -23,17 +23,18 @@ dev = [
     "dagster>=1.9",
     "dagster-webserver>=1.9",
     "dagster-dbt>=0.25",
+    "pymc-marketing>=1.5",
 ]
 
 [tool.setuptools]
-packages = ["simulator", "pipeline", "orchestration"]
+packages = ["simulator", "pipeline", "orchestration", "measurement"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP"]
