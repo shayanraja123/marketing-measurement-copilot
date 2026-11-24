@@ -12,9 +12,10 @@ with source as (
 deduplicated as (
     select *
     from source
+    where true  -- BigQuery requires a WHERE (or GROUP BY) clause alongside QUALIFY
     qualify row_number() over (
         partition by date_start, campaign_id, region
-        order by try_cast(impressions as integer) is null, date_start
+        order by {{ try_int('impressions') }} is null, date_start
     ) = 1
 ),
 
@@ -25,15 +26,15 @@ renamed as (
         campaign_id,
         trim(campaign_name)                       as campaign_name_reported,
         region,
-        cast(spend as decimal(12, 2))             as spend,
-        try_cast(impressions as integer)          as impressions,
+        {{ to_money('spend') }}                   as spend,
+        {{ try_int('impressions') }}              as impressions,
         cast(clicks as integer)                   as clicks,
         cast(purchases as integer)                as platform_conversions,
-        cast(purchase_value as decimal(14, 2))    as platform_conversion_value
+        {{ to_money('purchase_value') }}          as platform_conversion_value
     from deduplicated
 )
 
 select
-    concat_ws('|', cast(date_day as varchar), campaign_id, region) as ad_spend_id,
+    {{ make_key(['date_day', 'campaign_id', 'region']) }} as ad_spend_id,
     *
 from renamed

@@ -18,10 +18,12 @@ dev = [
     "jupyter>=1.0",
     "dbt-core>=1.9,<1.11",
     "dbt-duckdb>=1.9,<1.11",
+    "dbt-bigquery>=1.9,<1.11",
+    "google-cloud-bigquery>=3.20",
 ]
 
 [tool.setuptools]
-packages = ["simulator"]
+packages = ["simulator", "pipeline"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -3,7 +3,7 @@
 
 select
     campaign_id,
-    count(*) filter (where is_current) as current_versions
+    sum(case when is_current then 1 else 0 end) as current_versions
 from {{ ref('dim_campaigns') }}
 group by campaign_id
-having count(*) filter (where is_current) != 1
+having sum(case when is_current then 1 else 0 end) != 1

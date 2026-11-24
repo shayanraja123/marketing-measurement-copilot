@@ -2,6 +2,7 @@
 -- Fixes: column names with spaces, text-to-number casts, stray spaces in campaign names.
 -- Casing variants ("SEARCH - BRAND") can't be repaired reliably here, so the reported name is kept
 -- and the canonical campaign name comes from the campaign settings log in the marts.
+-- raw_col() writes each header the way the current database stores it (see macros/cross_db.sql).
 
 with source as (
     select * from {{ source('raw', 'google_ads_daily') }}
@@ -9,20 +10,20 @@ with source as (
 
 renamed as (
     select
-        cast("Day" as date)                    as date_day,
-        'paid_search'                          as channel,
-        "Campaign ID"                          as campaign_id,
-        trim("Campaign")                       as campaign_name_reported,
-        "Region"                               as region,
-        cast("Cost" as decimal(12, 2))         as spend,
-        try_cast("Impressions" as integer)     as impressions,
-        cast("Clicks" as integer)              as clicks,
-        cast("Conversions" as integer)         as platform_conversions,
-        cast("Conv. value" as decimal(14, 2))  as platform_conversion_value
+        cast({{ raw_col('Day') }} as date)                   as date_day,
+        'paid_search'                                        as channel,
+        {{ raw_col('Campaign ID') }}                         as campaign_id,
+        trim({{ raw_col('Campaign') }})                      as campaign_name_reported,
+        {{ raw_col('Region') }}                              as region,
+        {{ to_money(raw_col('Cost')) }}                      as spend,
+        {{ try_int(raw_col('Impressions')) }}                as impressions,
+        cast({{ raw_col('Clicks') }} as integer)             as clicks,
+        cast({{ raw_col('Conversions') }} as integer)        as platform_conversions,
+        {{ to_money(raw_col('Conv. value')) }}               as platform_conversion_value
     from source
 )
 
 select
-    concat_ws('|', cast(date_day as varchar), campaign_id, region) as ad_spend_id,
+    {{ make_key(['date_day', 'campaign_id', 'region']) }} as ad_spend_id,
     *
 from renamed

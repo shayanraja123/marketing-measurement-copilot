@@ -7,20 +7,20 @@ with source as (
 
 renamed as (
     select
-        cast(stat_time_day as date)                                    as date_day,
-        'tiktok'                                                       as channel,
+        cast(stat_time_day as date)                                   as date_day,
+        'tiktok'                                                      as channel,
         campaign_id,
-        trim(campaign_name)                                            as campaign_name_reported,
+        trim(campaign_name)                                           as campaign_name_reported,
         region,
-        cast(replace(replace(spend, '$', ''), ',', '') as decimal(12, 2)) as spend,
-        try_cast(impressions as integer)                               as impressions,
-        cast(clicks as integer)                                        as clicks,
-        cast(complete_payment as integer)                              as platform_conversions,
-        cast(complete_payment_value as decimal(14, 2))                 as platform_conversion_value
+        {{ to_money("replace(replace(spend, '$', ''), ',', '')") }}   as spend,
+        {{ try_int('impressions') }}                                  as impressions,
+        cast(clicks as integer)                                       as clicks,
+        cast(complete_payment as integer)                             as platform_conversions,
+        {{ to_money('complete_payment_value') }}                      as platform_conversion_value
     from source
 )
 
 select
-    concat_ws('|', cast(date_day as varchar), campaign_id, region) as ad_spend_id,
+    {{ make_key(['date_day', 'campaign_id', 'region']) }} as ad_spend_id,
     *
 from renamed

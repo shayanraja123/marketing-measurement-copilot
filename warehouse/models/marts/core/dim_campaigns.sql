@@ -13,18 +13,16 @@ with changes as (
 
 versions as (
     select
-        campaign_change_id                                         as campaign_version_id,
+        campaign_change_id                                                  as campaign_version_id,
         campaign_id,
         channel,
         campaign_name,
         targeting,
         daily_budget,
-        row_number() over (partition by campaign_id order by updated_at) as version_number,
-        cast(updated_at as date)                                   as valid_from,
-        cast(
-            lead(updated_at) over (partition by campaign_id order by updated_at) - interval 1 day
-            as date
-        )                                                          as valid_to
+        row_number() over (partition by campaign_id order by updated_at)     as version_number,
+        cast(updated_at as date)                                            as valid_from,
+        {{ add_days('lead(updated_at) over (partition by campaign_id order by updated_at)', -1) }}
+                                                                            as valid_to
     from changes
 )
 

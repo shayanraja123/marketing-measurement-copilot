@@ -8,15 +8,16 @@ with experiments as (
 
 exploded as (
     select
-        experiment_id,
-        channel,
-        unnest(string_split(treatment_regions, ';')) as region,
-        start_date,
-        end_date
-    from experiments
+        e.experiment_id,
+        e.channel,
+        region,
+        e.start_date,
+        e.end_date
+    from experiments as e
+    {{ explode('e.treatment_regions', ';', 'region') }}
 )
 
 select
-    concat_ws('|', experiment_id, region) as experiment_region_id,
+    {{ make_key(['experiment_id', 'region']) }} as experiment_region_id,
     *
 from exploded

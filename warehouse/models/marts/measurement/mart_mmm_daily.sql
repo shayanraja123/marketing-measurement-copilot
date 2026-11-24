@@ -54,8 +54,8 @@ display_export_gaps as (
     select d.date_day
     from dates as d
     where d.date_day not in (select date_day from display_days)
-      and d.date_day - 1 in (select date_day from display_days)
-      and d.date_day + 1 in (select date_day from display_days)
+      and {{ add_days('d.date_day', -1) }} in (select date_day from display_days)
+      and {{ add_days('d.date_day', 1) }} in (select date_day from display_days)
 ),
 
 holdout_days as (
@@ -66,7 +66,7 @@ holdout_days as (
 )
 
 select
-    concat_ws('|', cast(g.date_day as varchar), g.region) as mmm_row_id,
+    {{ make_key(['g.date_day', 'g.region']) }} as mmm_row_id,
     g.date_day,
     g.region,
     coalesce(s.revenue, 0)            as revenue,

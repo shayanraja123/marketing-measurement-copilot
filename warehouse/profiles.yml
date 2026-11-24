@@ -1,5 +1,6 @@
 # Connection settings. dbt looks for this file in the folder you run it from.
-# "dev" is a local DuckDB file (free, no setup). A BigQuery target is added in Week 3.
+#   dev  (default): a local DuckDB file. Free, offline, fast. Use for day-to-day work.
+#   prod:           Google BigQuery. Run with:  dbt build --target prod
 saguaro_warehouse:
   target: dev
   outputs:
@@ -7,3 +8,12 @@ saguaro_warehouse:
       type: duckdb
       path: "../data/warehouse.duckdb"   # inside data/, which git ignores
       threads: 4
+
+    prod:
+      type: bigquery
+      method: oauth                      # uses your `gcloud auth application-default login`
+      project: "{{ env_var('GCP_PROJECT', 'marketing-measurement-515620') }}"
+      dataset: analytics                 # models are built here; raw files live in the `raw` dataset
+      location: US
+      threads: 4
+      job_execution_timeout_seconds: 300

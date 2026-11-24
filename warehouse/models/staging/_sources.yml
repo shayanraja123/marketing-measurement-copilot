@@ -6,7 +6,11 @@ sources:
       Files exactly as the brand receives them from each ad platform and its store
       (written by `python -m simulator.generate`). Every column is read as text on purpose:
       types are set explicitly in staging, so a bad value fails loudly instead of being guessed.
+      Locally (DuckDB) the CSV files are read directly. In BigQuery they are tables in the
+      `raw` dataset, uploaded by `python -m pipeline.load_raw_bigquery`.
+    schema: raw
     meta:
+      # Used by DuckDB only; BigQuery reads the `raw` dataset instead.
       external_location: "read_csv('../data/raw/{name}.csv', header = true, all_varchar = true)"
     tables:
       - name: google_ads_daily

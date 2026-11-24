@@ -25,6 +25,5 @@ seeds:
   saguaro_warehouse:
     promo_calendar:
       +column_types:
-        event_name: varchar
         start_date: date
         end_date: date
