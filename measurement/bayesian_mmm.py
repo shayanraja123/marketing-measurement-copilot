@@ -24,7 +24,8 @@ import numpy as np
 import pandas as pd
 
 from measurement.data import CHANNELS, ROOT, SPEND_COLUMNS, load_mmm_daily, national_daily
-from measurement.grade import grade, load_truth, wrong_side_of_breakeven
+from measurement.grade import grade, load_truth, summary_metrics, wrong_side_of_breakeven
+from measurement.tracking import log_run
 
 RESULTS_DIR = ROOT / "results" / "bayesian_mmm"
 MODEL_DIR = ROOT / "data" / "models"  # large model files; data/ is not committed
@@ -39,7 +40,9 @@ def build_inputs(national: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series, list[
     dow = pd.get_dummies(national["date_day"].dt.day_of_week, prefix="dow", drop_first=True, dtype=float)
     X = pd.concat([X, dow], axis=1)
     controls = ["trend", "promo", *dow.columns]
-    return X, national["revenue"].astype(float), controls
+    # PyMC-Marketing names the target "y" by default, so the revenue series is renamed to match.
+    y = national["revenue"].astype(float).rename("y")
+    return X, y, controls
 
 
 def build_model(X: pd.DataFrame, controls: list[str]):
@@ -49,7 +52,9 @@ def build_model(X: pd.DataFrame, controls: list[str]):
     # Common practice: a channel's effect prior is scaled by its share of total spend, so the model
     # starts from "bigger budgets can have bigger effects" and lets the data move it from there.
     spend_share = X[SPEND_COLUMNS].sum() / X[SPEND_COLUMNS].sum().sum()
-    prior_sigma = (len(CHANNELS) * spend_share).to_numpy()
+    import xarray as xr
+
+    prior_sigma = xr.DataArray((len(CHANNELS) * spend_share).to_numpy(), dims=("channel",))
 
     model_config = {
         "intercept": Prior("Normal", mu=0.5, sigma=0.2),
@@ -106,7 +111,7 @@ def main() -> None:
     mmm = build_model(X, controls)
 
     print(f"Fitting on {len(X)} days, {len(CHANNELS)} channels: {chains} chains x {draws} draws ...")
-    mmm.fit(X=X, y=y, chains=chains, draws=draws, tune=tune, target_accept=0.9, random_seed=42)
+    mmm.fit(X=X, y=y, chains=chains, draws=draws, tune=tune, target_accept=0.95, random_seed=42)
 
     divergences = int(mmm.idata["sample_stats"]["diverging"].sum().item())
     summary = summarize(iroas_posterior(mmm, X))
@@ -131,9 +136,22 @@ def main() -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     table.to_csv(RESULTS_DIR / "iroas_vs_truth.csv")
     with open(RESULTS_DIR / "run_info.json", "w") as f:
-        json.dump({"chains": chains, "draws": draws, "tune": tune, "divergences": divergences,
+        json.dump({"chains": chains, "draws": draws, "tune": tune, "target_accept": 0.95,
+                   "divergences": divergences,
                    "days": len(X), "quick": args.quick}, f, indent=2)
     mmm.save(str(MODEL_DIR / "bayesian_mmm.nc"))
+    metrics = summary_metrics(summary["estimate"], truth, summary["low"], summary["high"])
+    metrics["divergences"] = divergences
+    run_id = log_run(
+        run_name="Bayesian MMM (national)" + (" quick" if args.quick else ""),
+        params={"method": "PyMC-Marketing MMM", "level": "national", "adstock": "geometric, l_max=14",
+                "saturation": "logistic", "yearly_seasonality": 2, "chains": chains, "draws": draws,
+                "tune": tune, "target_accept": 0.95, "days": len(X)},
+        estimate=summary["estimate"],
+        metrics=metrics,
+        scorecard=table,
+    )
+    print(f"Logged to MLflow (run {run_id[:8]})")
     print(f"\nSaved results to {RESULTS_DIR} and the fitted model to {MODEL_DIR}")
 
 

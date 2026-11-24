@@ -16,7 +16,8 @@ import numpy as np
 import pandas as pd
 
 from measurement.data import CHANNELS, SPEND_COLUMNS, load_mmm_daily, national_daily
-from measurement.grade import grade, wrong_side_of_breakeven
+from measurement.grade import grade, summary_metrics, wrong_side_of_breakeven
+from measurement.tracking import log_run
 
 
 def ols(y: np.ndarray, X: pd.DataFrame) -> pd.Series:
@@ -65,6 +66,14 @@ def main() -> None:
         wrong = wrong_side_of_breakeven(est)
         verdict = ", ".join(wrong) if wrong else "none"
         print(f"\n{name}: channels on the wrong side of break-even (iROAS 1.0): {verdict}")
+        log_run(
+            run_name=f"OLS {name}",
+            params={"method": "OLS", "variant": name, "adstock": "none", "saturation": "none", "days": len(national)},
+            estimate=est,
+            metrics=summary_metrics(est),
+            scorecard=table,
+        )
+    print("\nLogged both runs to MLflow.")
 
 
 if __name__ == "__main__":

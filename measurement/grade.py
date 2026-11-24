@@ -46,3 +46,27 @@ def wrong_side_of_breakeven(estimate: pd.Series, truth: pd.DataFrame | None = No
     truth = load_truth() if truth is None else truth
     est = estimate.reindex(truth.index)
     return [ch for ch in truth.index if (est[ch] >= 1) != (truth.loc[ch, "true_iroas"] >= 1)]
+
+
+def summary_metrics(
+    estimate: pd.Series,
+    truth: pd.DataFrame | None = None,
+    low: pd.Series | None = None,
+    high: pd.Series | None = None,
+) -> dict[str, float]:
+    """One set of scores per run, so runs can be compared in MLflow.
+
+    mean_abs_pct_error: average size of the error, as a share of the true iROAS
+    channels_wrong_side: channels where profitable/unprofitable is called wrong (the costliest mistake)
+    interval_coverage: share of channels whose true iROAS is inside the model's interval (if it has one)
+    """
+    truth = load_truth() if truth is None else truth
+    est = estimate.reindex(truth.index)
+    metrics = {
+        "mean_abs_pct_error": float((est / truth["true_iroas"] - 1).abs().mean()),
+        "channels_wrong_side": float(len(wrong_side_of_breakeven(est, truth))),
+    }
+    if low is not None and high is not None:
+        inside = (truth["true_iroas"] >= low.reindex(truth.index)) & (truth["true_iroas"] <= high.reindex(truth.index))
+        metrics["interval_coverage"] = float(inside.mean())
+    return metrics

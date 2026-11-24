@@ -1,0 +1,6 @@
+channel,true_iroas,platform_roas,MMM,MMM error,MMM 94% interval,truth inside interval,P(profitable)
+paid_search,2.0,3.4842,1.1878910413954695,-41%,0.33 to 2.34,True,61%
+paid_social,2.3996,4.2209,1.3213859776483805,-45%,0.72 to 2.04,False,83%
+tiktok,0.8,1.9766,1.9109532734585368,+139%,0.40 to 3.41,True,86%
+display,0.5,2.8422,0.21465192802042948,-57%,0.01 to 0.74,True,1%
+email,7.0,16.7512,5.715209171778679,-18%,0.16 to 21.83,True,84%
