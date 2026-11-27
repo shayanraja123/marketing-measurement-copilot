@@ -70,3 +70,9 @@ def summary_metrics(
         inside = (truth["true_iroas"] >= low.reindex(truth.index)) & (truth["true_iroas"] <= high.reindex(truth.index))
         metrics["interval_coverage"] = float(inside.mean())
     return metrics
+
+
+def load_experiment_truth(experiment_id: str, path: Path = TRUTH_PATH) -> dict:
+    """The true effect of a geo experiment, for grading an experiment analysis."""
+    with open(path) as f:
+        return json.load(f)["experiments"][experiment_id]

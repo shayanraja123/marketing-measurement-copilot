@@ -1,0 +1,58 @@
+{
+  "experiment_id": "GEO-2025-01",
+  "channel": "paid_social",
+  "treatment_regions": [
+    "midwest",
+    "pacific_nw",
+    "texas"
+  ],
+  "test_period": [
+    "2026-02-13",
+    "2026-03-12"
+  ],
+  "measurement_window": [
+    "2026-02-13",
+    "2026-03-26"
+  ],
+  "pre_period_days": 42,
+  "estimate": {
+    "revenue_lost": 59893.750320777996,
+    "lift_pct": 0.07763560060400604,
+    "spend_withheld": 20280.373780254977,
+    "iroas": 2.9532863136423404
+  },
+  "ci95": {
+    "revenue_lost": [
+      36892.37679206859,
+      86464.53778011064
+    ],
+    "lift_pct": [
+      0.04957788402274383,
+      0.10819389980693657
+    ],
+    "iroas": [
+      2.005483769703256,
+      5.2079490468066165
+    ]
+  },
+  "placebo_windows": 60,
+  "placebo_lift_sd": 0.03419048253625479,
+  "placebo_p_value": 0.06666666666666667,
+  "truth": {
+    "channel": "paid_social",
+    "treatment_regions": [
+      "midwest",
+      "texas",
+      "pacific_nw"
+    ],
+    "window": [
+      "2026-02-13",
+      "2026-03-26"
+    ],
+    "true_revenue_lost": 47473.08,
+    "spend_withheld": 19471.5,
+    "true_iroas": 2.4381,
+    "true_lift_pct_of_revenue": 6.286,
+    "inside_ci95": true
+  }
+}
