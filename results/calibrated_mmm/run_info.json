@@ -1,0 +1,14 @@
+{
+  "experiment_id": "GEO-2025-01",
+  "test_days": 28,
+  "experiment_iroas": 2.9532863136423404,
+  "x_per_day": 2347.798873406552,
+  "delta_x_per_day": -724.2990635805348,
+  "delta_y_per_day": -2139.062511456357,
+  "sigma_per_day": 942.0366284656791,
+  "chains": 4,
+  "draws": 1000,
+  "tune": 1000,
+  "target_accept": 0.95,
+  "divergences": 9
+}
