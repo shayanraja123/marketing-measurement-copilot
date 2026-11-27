@@ -1,0 +1,151 @@
+{
+  "users": 13979592,
+  "treatment": 11882655,
+  "control": 2096937,
+  "sample_fraction": 1.0,
+  "balance_check": {
+    "smd": {
+      "f0": -0.0069,
+      "f1": 0.024,
+      "f2": -0.0062,
+      "f3": -0.0488,
+      "f4": 0.008,
+      "f5": -0.0306,
+      "f6": -0.0404,
+      "f7": 0.0213,
+      "f8": -0.0224,
+      "f9": 0.024,
+      "f10": 0.0106,
+      "f11": -0.0052
+    },
+    "max_abs_smd": 0.04883634670362982,
+    "smd_standard_error": 0.000749027586326405,
+    "treatment_auc": 0.5103441721910823
+  },
+  "visit": [
+    {
+      "outcome": "visit",
+      "method": "plain A/B",
+      "lift_pp": 1.0342403129198283,
+      "relative_lift": 0.27073675539019615,
+      "ci95_pp": [
+        1.0055622885904043,
+        1.0629183372492526
+      ],
+      "bootstrap_ci95_pp": [
+        1.00464810727693,
+        1.0599114491735877
+      ],
+      "ci_width_pp": 0.057356048658848205,
+      "variance_reduction": 0.0,
+      "equivalent_sample_multiplier": 1.0
+    },
+    {
+      "outcome": "visit",
+      "method": "CUPED (linear, f0-f11)",
+      "lift_pp": 0.6979598230585776,
+      "relative_lift": 0.18270741869858118,
+      "ci95_pp": [
+        0.6731544531235909,
+        0.7227651929935643
+      ],
+      "bootstrap_ci95_pp": [
+        0.6754037144876546,
+        0.7217111851183813
+      ],
+      "ci_width_pp": 0.04961073986997355,
+      "variance_reduction": 0.2801020018985386,
+      "equivalent_sample_multiplier": 1.3890856796896682
+    },
+    {
+      "outcome": "visit",
+      "method": "CUPAC (cross-fitted gradient boosting)",
+      "lift_pp": 0.6369303294574101,
+      "relative_lift": 0.16673151167360753,
+      "ci95_pp": [
+        0.6130495681829905,
+        0.6608110907318298
+      ],
+      "bootstrap_ci95_pp": [
+        0.6095964341800308,
+        0.662211200601789
+      ],
+      "ci_width_pp": 0.04776152254883925,
+      "variance_reduction": 0.3340489346128598,
+      "equivalent_sample_multiplier": 1.5016118330235957
+    }
+  ],
+  "conversion": [
+    {
+      "outcome": "conversion",
+      "method": "plain A/B",
+      "lift_pp": 0.11518730521316278,
+      "relative_lift": 0.594488117725262,
+      "ci95_pp": [
+        0.10845045391632421,
+        0.12192415651000137
+      ],
+      "bootstrap_ci95_pp": [
+        0.10822707342359245,
+        0.12241712633964687
+      ],
+      "ci_width_pp": 0.013473702593677162,
+      "variance_reduction": 0.0,
+      "equivalent_sample_multiplier": 1.0
+    },
+    {
+      "outcome": "conversion",
+      "method": "CUPED (linear, f0-f11)",
+      "lift_pp": 0.09158322934514208,
+      "relative_lift": 0.47266616340958456,
+      "ci95_pp": [
+        0.085215640431575,
+        0.09795081825870917
+      ],
+      "bootstrap_ci95_pp": [
+        0.0855170499328029,
+        0.09798872465645433
+      ],
+      "ci_width_pp": 0.012735177827134184,
+      "variance_reduction": 0.11893705992170722,
+      "equivalent_sample_multiplier": 1.1349926940646695
+    },
+    {
+      "outcome": "conversion",
+      "method": "CUPAC (cross-fitted gradient boosting)",
+      "lift_pp": 0.10716399536831842,
+      "relative_lift": 0.553079367353324,
+      "ci95_pp": [
+        0.10064986626333779,
+        0.11367812447329904
+      ],
+      "bootstrap_ci95_pp": [
+        0.10090602002740334,
+        0.1132054263873964
+      ],
+      "ci_width_pp": 0.013028258209961266,
+      "variance_reduction": 0.07428658888414719,
+      "equivalent_sample_multiplier": 1.0802479341793292
+    }
+  ],
+  "aa_test_visit": [
+    {
+      "method": "plain A/B",
+      "lift_pp": 0.03578185310969054,
+      "ci95_pp": [
+        -0.016106694155076116,
+        0.08767040037445718
+      ],
+      "interval_contains_zero": true
+    },
+    {
+      "method": "CUPED (linear, f0-f11)",
+      "lift_pp": 0.013420350152557048,
+      "ci95_pp": [
+        -0.0314627428527238,
+        0.0583034431578379
+      ],
+      "interval_contains_zero": true
+    }
+  ]
+}

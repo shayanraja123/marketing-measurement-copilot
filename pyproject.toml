@@ -25,6 +25,8 @@ dev = [
     "dagster-dbt>=0.25",
     "pymc-marketing>=1.5",
     "mlflow>=2.15",
+    "scikit-learn>=1.4",
+    "pyarrow>=15",
 ]
 
 [tool.setuptools]

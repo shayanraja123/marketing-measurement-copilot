@@ -5,8 +5,9 @@ overestimate what their ads do and put budget in the wrong places. This project 
 true return on each channel, recommends budget shifts, and answers questions in plain English, with every number
 coming from a statistical model rather than an LLM.
 
-> **Status: Week 4 of 11.** Data foundation done (simulator, dbt on DuckDB and BigQuery, Dagster), and a first
-> Bayesian media mix model graded against the truth. Next: calibrating it with the geo experiment.
+> **Status: Week 5 of 11.** Data foundation done (simulator, dbt on DuckDB and BigQuery, Dagster). Measurement:
+> Bayesian MMMs graded against the truth, a geo experiment analysis, and CUPED on a real 14M-user test.
+> Next: the budget optimizer.
 
 ## Why simulated data?
 
@@ -146,8 +147,71 @@ wrong.
 **Where it still falls short, and why:** it gives ads about 31% too little credit overall ($5.9M of incremental
 revenue vs. a true $8.6M), because the brand raised budgets in Q4 exactly when holiday demand peaked, so some ad
 effect is credited to seasonality. It also over-credits TikTok, the channel with the shortest history.
-Priors were **not** tuned toward the known answer, since a real analyst never has it. The fix uses information a
-real brand does have: its geo holdout experiment (next).
+Priors were **not** tuned toward the known answer, since a real analyst never has it. The fixes below use only
+information a real brand does have.
+
+## Experiments and model improvements
+
+### The geo holdout: what did turning paid social off cost?
+
+The brand switched paid social off in 3 of 10 regions for 4 weeks. `measurement/geo_experiment.py` estimates the
+effect with difference-in-differences: the pre-test ratio of treatment to control revenue predicts what treatment
+regions would have sold, and the gap is the lost revenue (measured through a 2-week adstock tail).
+
+| | Estimate | 95% interval | Truth |
+| --- | --- | --- | --- |
+| Revenue lost | $59,894 | $36,892 to $86,465 | $47,473 |
+| Paid social iROAS | **2.95** | 2.01 to 5.21 | **2.44** |
+
+The estimate lands much closer to the truth than the MMM did. But **placebo tests** (the same method on 60 periods
+with no test) show noise alone moves results by about ±3.4%, and 7% of placebos were as large as the real effect.
+The evidence is borderline (placebo p ≈ 0.07): with 3 of 10 regions for 4 weeks, this brand's natural noise is
+almost as big as the effect. The bootstrap interval alone looked convincing; the placebo check is stricter because it
+also captures drift between regions.
+
+### Improving the MMM
+
+| | National MMM | + calibrated with the geo test | **Regional MMM (10 geos)** |
+| --- | --- | --- | --- |
+| Mean absolute error | 60% | 61% | **36%** |
+| Paid search (true 2.00) | 1.19 | 1.21 | **1.55** |
+| Paid social (true 2.40) | 1.32 | 1.41 | **1.51** |
+| TikTok (true 0.80) | 1.91 | 2.02 | **1.16** |
+| Display (true 0.50) | 0.21 | 0.22 | 0.16 |
+| Email (true 7.00) | 5.72 | 5.81 | **6.22** |
+| Total ad credit vs truth | -31% | | **-26%** |
+
+- **Calibration with the geo test** (a PyMC-Marketing lift test) moved paid social only 7%, because the experiment
+  was passed in with its honest, placebo-based uncertainty. Passing the narrower bootstrap uncertainty because the
+  answer is known to be higher would be tuning toward the truth.
+- **Fitting on regions instead of national totals** was the biggest improvement: the model sees each region's own
+  spend swings, and paid social at $0 in 3 regions while it kept running in 7. Mean error fell from 60% to 36%.
+- **What remains:** ads are still under-credited by 26%, because every region shares the same holiday season and
+  the same Q4 budget increase, a confounding that no observational model can fully undo. TikTok is still estimated
+  just above break-even (interval 0.28 to 2.09). Closing that gap needs better-powered experiments, ideally run
+  outside Q4.
+
+### CUPED on a real 14-million-user test
+
+`measurement/criteo_cuped.py` uses Criteo's public uplift dataset (a real ad-incrementality test; 85% of users could
+see ads, 15% could not) to estimate how much the ads raised visits, three ways:
+
+| Method | Visit lift | 95% interval | Interval width | Equivalent to |
+| --- | --- | --- | --- | --- |
+| Plain A/B | +1.03 pp (+27%) | 1.01 to 1.06 | 0.057 | 1.0x the users |
+| CUPED (linear, 12 pre-test features) | +0.70 pp (+18%) | 0.67 to 0.72 | 0.050 | 1.39x the users |
+| CUPAC (cross-fitted gradient boosting) | +0.64 pp (+17%) | 0.61 to 0.66 | 0.048 | 1.50x the users |
+
+CUPED should narrow the interval without moving the estimate, so a one-third drop in the lift was a warning sign. A
+**randomization check** explained it: pre-test features differ slightly between the groups (up to 0.05 SD, against
+a detection threshold of 0.001 SD; a classifier predicts treatment with AUC 0.510). The dataset merges several
+advertiser tests, and some imbalance survived. Because the features strongly predict visits, that small imbalance
+inflated the plain A/B lift by roughly half (1.03 pp vs 0.64 to 0.70 pp). Here CUPED and CUPAC did two jobs: **corrected the bias** and **narrowed the
+interval** (variance down 28% and 33%). An A/A test (control split in two random halves) found no effect with either
+method, and the `exposure` column was deliberately not used because the ads themselves affect it.
+
+Data: [Criteo Uplift Prediction Dataset v2.1](https://huggingface.co/datasets/criteo/criteo-uplift) (Diemert et al.,
+2018), CC BY-NC-SA 4.0.
 
 ## Quick start
 
@@ -165,6 +229,10 @@ dagster dev                          # pipeline UI at http://localhost:3000
 
 python -m measurement.naive_regression   # the baseline, graded against the truth
 python -m measurement.bayesian_mmm       # Bayesian MMM, about 30 seconds on a laptop
+python -m measurement.geo_experiment     # geo holdout: diff-in-diff, bootstrap and placebo tests
+python -m measurement.calibrated_mmm     # MMM calibrated with the geo test
+python -m measurement.regional_mmm       # MMM on 10 regions, about 7 minutes
+python -m measurement.criteo_cuped       # CUPED on Criteo's real test (downloads ~300 MB once; ~15 minutes)
 mlflow ui --backend-store-uri sqlite:///data/mlflow.db --port 5001   # compare runs at http://127.0.0.1:5001
 ```
 
@@ -196,7 +264,7 @@ tests/           tests for the simulator
 warehouse/       dbt project: staging, marts, seeds, data tests and cross-database macros
 pipeline/        loader that uploads the raw files to BigQuery
 orchestration/   Dagster pipeline: assets, daily schedule, BigQuery publish job
-measurement/     naive regression, Bayesian MMM, grading against the truth, MLflow tracking
+measurement/     baselines, Bayesian MMMs, geo experiment, CUPED, grading against the truth, MLflow tracking
 results/         each model's scorecard against the truth
 docs/images/     screenshots used in this README
 data/            generated, not committed: raw/, ground_truth/, warehouse.duckdb
